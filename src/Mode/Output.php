@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,11 +10,13 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Mode;
 
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
 use LogicException;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\Stream;
 
 /**
@@ -34,7 +37,7 @@ class Output extends Mode
     protected $_defaultConfig = [
         'code' => 503,
         'path' => '',
-        'headers' => []
+        'headers' => [],
     ];
 
     /**
@@ -43,7 +46,7 @@ class Output extends Mode
      * Will set the location where to redirect the request with the specified code
      * and optional additional headers.
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
+    public function process(ServerRequest $request): ResponseInterface
     {
         $path = $this->_getPath();
 
@@ -51,13 +54,11 @@ class Output extends Mode
             throw new LogicException(sprintf('The file (path : `%s`) does not exist.', $path));
         }
 
-        $stream = new Stream(fopen($path, 'rb'));
-        $response = $response->withBody($stream);
-        $response = $response->withStatus($this->_config['code']);
+        $response = new Response();
 
-        $response = $this->addHeaders($response);
-
-        return $response;
+        return $this->addHeaders(
+            $response->withBody(new Stream(fopen($path, 'rb')))->withStatus($this->_config['code'])
+        );
     }
 
     /**

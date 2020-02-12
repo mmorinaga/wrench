@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,11 +10,12 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Mode;
 
+use Cake\Http\ServerRequest;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * `Callback` Maintenance Mode.
@@ -31,13 +33,13 @@ class Callback extends Mode
      * Will try to call the callback pass as parameter
      * @throw \InvalidArgumentException if the callback parameter is not a proper callable.
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
+    public function process(ServerRequest $request) : ResponseInterface
     {
         $callback = $this->_config['callback'];
         if (!is_callable($callback)) {
             throw new InvalidArgumentException('You must pass a valid callable as the `callback` argument.');
         }
 
-        return $callback($request, $response);
+        return $callback($request);
     }
 }

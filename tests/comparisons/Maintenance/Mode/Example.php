@@ -1,8 +1,10 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Maintenance\Mode;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
 use Wrench\Mode\Mode;
 
 /**
@@ -29,8 +31,8 @@ class Example extends Mode
      *
      * {@inheritDoc}
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
+    public function process(ServerRequest $request): ResponseInterface
     {
-        return $response;
+        return new Response();
     }
 }

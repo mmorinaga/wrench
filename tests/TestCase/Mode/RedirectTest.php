@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,21 +10,27 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Test\TestCase\Mode;
 
 use Cake\Core\Configure;
 use Cake\Http\ServerRequestFactory;
 use Cake\TestSuite\TestCase;
+use App\Http\TestRequestHandler;
 use Wrench\Middleware\MaintenanceMiddleware;
 use Zend\Diactoros\Response;
 
+/**
+ * Class RedirectTest
+ *
+ * @package Wrench\Test\TestCase\Mode
+ */
 class RedirectTest extends TestCase
 {
-
     /**
      * @inheritDoc
      */
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
         Configure::write('Wrench.enable', false);
@@ -41,12 +48,11 @@ class RedirectTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware();
-        $middlewareResponse = $middleware($request, $response, $next);
+
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
 
         $this->assertEquals(307, $middlewareResponse->getStatusCode());
         $this->assertEquals('http://localhost/maintenance.html', $middlewareResponse->getHeaderLine('location'));
@@ -64,10 +70,6 @@ class RedirectTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
 
         $middleware = new MaintenanceMiddleware([
             'mode' => [
@@ -79,7 +81,11 @@ class RedirectTest extends TestCase
             ]
         ]);
 
-        $middlewareResponse = $middleware($request, $response, $next);
+
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
+
         $this->assertEquals(503, $middlewareResponse->getStatusCode());
         $this->assertEquals('http://www.example.com/maintenance.html', $middlewareResponse->getHeaderLine('location'));
     }
@@ -96,10 +102,6 @@ class RedirectTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
 
         $middleware = new MaintenanceMiddleware([
             'mode' => [
@@ -112,7 +114,10 @@ class RedirectTest extends TestCase
             ]
         ]);
 
-        $middlewareResponse = $middleware($request, $response, $next);
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
+
         $this->assertEquals(503, $middlewareResponse->getStatusCode());
         $this->assertEquals('http://www.example.com/maintenance.html', $middlewareResponse->getHeaderLine('location'));
         $this->assertEquals('someValue', $middlewareResponse->getHeaderLine('someHeader'));
@@ -133,14 +138,13 @@ class RedirectTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware([
             'whitelist' => ['127.0.0.1'],
         ]);
-        $middlewareResponse = $middleware($request, $response, $next);
+
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
 
         $this->assertEquals(200, $middlewareResponse->getStatusCode());
     }

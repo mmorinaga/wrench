@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,8 +10,10 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Mode;
 
+use Cake\Http\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\Response\RedirectResponse;
@@ -42,7 +45,7 @@ class Redirect extends Mode
     protected $_defaultConfig = [
         'code' => 307,
         'url' => '',
-        'headers' => []
+        'headers' => [],
     ];
 
     /**
@@ -51,7 +54,7 @@ class Redirect extends Mode
      * Will set the location where to redirect the request with the specified code
      * and optional additional headers.
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
+    public function process(ServerRequest $request) : ResponseInterface
     {
         $url = $this->_getUrl($request);
         $headers = $this->getConfig('headers');

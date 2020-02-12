@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,10 +10,16 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Mode\Exception;
 
 use Cake\Core\Exception\Exception;
 
+/**
+ * Class MissingModeException
+ *
+ * @package Wrench\Mode\Exception
+ */
 class MissingModeException extends Exception
 {
 

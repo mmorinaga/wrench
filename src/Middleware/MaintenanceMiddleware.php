@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,12 +10,15 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Middleware;
 
 use Cake\Core\Configure;
 use Cake\Core\InstanceConfigTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Wrench\Mode\Exception\MissingModeException;
 use Wrench\Mode\Mode;
 
@@ -22,7 +26,7 @@ use Wrench\Mode\Mode;
  * Middleware responsible of intercepting request to
  * deal with the application being under maintenance
  */
-class MaintenanceMiddleware
+class MaintenanceMiddleware implements MiddlewareInterface
 {
     use InstanceConfigTrait;
 
@@ -67,13 +71,13 @@ class MaintenanceMiddleware
 
             $config = $this->_config['mode']['config'];
             $middlewareConfig = !empty($config) ? $config : [];
-            $this->mode($className, $middlewareConfig);
+            $this->setMode($className, $middlewareConfig);
 
             return;
         }
 
         if ($mode instanceof Mode) {
-            $this->mode($mode);
+            $this->setMode($mode);
         }
     }
 
@@ -84,45 +88,38 @@ class MaintenanceMiddleware
      * served. The gives the opportunity for an application maintainer to see the application running normally in case
      * the maintenance mode is enabled.
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $request The request.
-     * @param \Psr\Http\Message\ResponseInterface $response The response.
-     * @param callable $next Callback to invoke the next middleware.
+     * @param \Psr\Http\Message\ServerRequestInterface|\Cake\Http\ServerRequest $request The request.
+     * @param \Psr\Http\Server\RequestHandlerInterface $handler The response.
      * @return \Psr\Http\Message\ResponseInterface A response
      */
-    public function __invoke($request, $response, $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $clientIp = $this->getClientIp($request);
         if (!Configure::read('Wrench.enable') || $this->isWhitelisted($clientIp)) {
-            return $next($request, $response);
+            return $handler->handle($request);
         }
 
-        $response = $this->mode()->process($request, $response);
+        $response = $this->getMode()->process($request, $handler);
 
         if ($response instanceof ResponseInterface) {
             return $response;
         }
 
-        return $next($request, $response);
+        return $handler->handle($request);
     }
 
     /**
      * Sets the mode instance. If a string is passed it will be treated
      * as a class name and will be instantiated.
      *
-     * If no params are passed it will return the current mode instance.
-     *
-     * @param \Wrench\Mode\Mode|string|null $mode The mode instance to use.
+     * @param \Wrench\Mode\Mode|string $mode The mode instance to use.
      * @param array $config Either config for a new driver or null.
      * @return \Wrench\Mode\Mode
      *
      * @throws \Wrench\Mode\Exception\MissingModeException When the specified mode can not be loaded
      */
-    public function mode($mode = null, $config = [])
+    public function setMode($mode, $config = [])
     {
-        if ($mode === null) {
-            return $this->_mode;
-        }
-
         if (is_string($mode)) {
             if (!class_exists($mode)) {
                 throw new MissingModeException(['mode' => $mode]);
@@ -132,6 +129,16 @@ class MaintenanceMiddleware
         }
 
         return $this->_mode = $mode;
+    }
+
+    /**
+     * Return the current mode instance.
+     *
+     * @throws \Wrench\Mode\Exception\MissingModeException When the specified mode can not be loaded
+     */
+    public function getMode()
+    {
+        return $this->_mode;
     }
 
     /**

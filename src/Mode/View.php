@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,12 +10,12 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Mode;
 
-use Cake\Http\RequestTransformer;
-use Cake\Http\ResponseTransformer;
+use Cake\Http\ServerRequest;
+use Cake\View\ViewVarsTrait;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\Stream;
 
 /**
@@ -25,6 +26,12 @@ use Zend\Diactoros\Stream;
  */
 class View extends Mode
 {
+    use ViewVarsTrait;
+
+    /**
+     * @var \Psr\Http\Message\ServerRequestInterface
+     */
+    protected $request;
 
     /**
      * Default config
@@ -54,9 +61,10 @@ class View extends Mode
             'plugin' => null,
             'theme' => null,
             'layout' => null,
-            'layoutPath' => null
+            'layoutPath' => null,
         ],
-        'headers' => []
+
+        'headers' => [],
     ];
 
     /**
@@ -65,28 +73,40 @@ class View extends Mode
      * Will render the view and use the content as the body of the response.
      * It will also set the specified HTTP code and optional additional headers.
      */
-    public function process(ServerRequestInterface $request, ResponseInterface $response)
+    public function process(ServerRequest $request) : ResponseInterface
     {
-        $className = $this->_config['view']['className'];
-        if (empty($className)) {
-            $className = 'App\View\AppView';
+        $this->request = $request;
+
+        // Set default view class
+        if (empty($this->_config['view']['className'])) {
+            $this->_config['view']['className'] = 'App\View\AppView';
         }
 
-        $viewConfig = $this->_config['view'] ?: [];
-        $view = new $className(
-            $request,
-            $response,
-            null,
-            $viewConfig
-        );
+        // Set view and view builder options
+        $viewBuilder = $this->viewBuilder();
+        $viewOptions = $this->_config['view'] ?: [];
+        $viewBuilderOptions = [];
+
+        foreach ($viewOptions as $option => $value) {
+            $method = 'set' . ucfirst($option);
+            if (method_exists($viewBuilder, $method)) {
+                $viewBuilder->{$method}($value);
+            } else {
+                $viewBuilderOptions[$option] = $value;
+            }
+        }
+        if (!empty($viewBuilderOptions)) {
+            $viewBuilder->setOptions($viewBuilderOptions);
+        }
+
+        // Build view
+        $view = $viewBuilder->build([], $request);
 
         $stream = new Stream(fopen('php://memory', 'r+'));
         $stream->write($view->render());
-        $response = $response->withBody($stream);
-        $response = $response->withStatus($this->_config['code']);
 
-        $response = $this->addHeaders($response);
-
-        return $response;
+        return $this->addHeaders(
+            $view->getResponse()->withBody($stream)->withStatus($this->_config['code'])
+        );
     }
 }

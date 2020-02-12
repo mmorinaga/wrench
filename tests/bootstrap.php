@@ -21,10 +21,12 @@ $findRoot = function ($root) {
             return $root;
         }
     } while ($root !== $lastRoot);
-    throw new Exception('Cannot find the root of the application, unable to run tests');
+
+    throw new Exception("Cannot find the root of the application, unable to run tests");
 };
 $root = $findRoot(__FILE__);
 unset($findRoot);
+
 chdir($root);
 
 require_once 'vendor/cakephp/cakephp/src/basics.php';
@@ -37,22 +39,16 @@ define('TMP', sys_get_temp_dir() . DS);
 define('CACHE', TMP . 'cache' . DS);
 
 Configure::write('debug', true);
-Configure::write('App', [
-    'namespace' => 'App',
-    'paths' => [
-        'plugins' => [ROOT . 'Plugin' . DS]
-    ]
-]);
 
 Configure::write('App', [
     'encoding' => 'utf-8',
-    'namespace' => 'App',
+    'namespace' => 'TestApp',
     'paths' => [
-        'plugins' => [APP . 'Plugin' . DS],
-        'templates' => [APP . 'Template' . DS]
+        'plugins' => [ROOT . DS . 'plugins' . DS],
+        'templates' => [ROOT. DS . 'templates' . DS]
     ]
 ]);
 
-Plugin::load('Wrench', [
+Plugin::getCollection()->add(new \Wrench\Plugin([
     'path' => dirname(dirname(__FILE__)) . DS,
-]);
+]));

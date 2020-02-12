@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Copyright (c) Yves Piquel (http://www.havokinspiration.fr)
  *
@@ -9,21 +10,28 @@
  * @link          http://github.com/HavokInspiration/wrench
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
 namespace Wrench\Test\TestCase\Mode;
 
 use Cake\Core\Configure;
 use Cake\Http\Response;
 use Cake\Http\ServerRequestFactory;
 use Cake\TestSuite\TestCase;
+use LogicException;
+use App\Http\TestRequestHandler;
 use Wrench\Middleware\MaintenanceMiddleware;
 
+/**
+ * Class OutputTest
+ *
+ * @package Wrench\Test\TestCase\Mode
+ */
 class OutputTest extends TestCase
 {
-
     /**
      * @inheritDoc
      */
-    public function tearDown()
+    public function tearDown(): void
     {
         parent::tearDown();
         Configure::write('Wrench.enable', false);
@@ -41,21 +49,20 @@ class OutputTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware([
             'mode' => [
                 'className' => 'Wrench\Mode\Output'
             ]
         ]);
-        $res = $middleware($request, $response, $next);
 
-        $this->assertEquals(503, $res->getStatusCode());
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
+
+        $this->assertEquals(503, $middlewareResponse->getStatusCode());
 
         $content = file_get_contents(ROOT . DS . 'maintenance.html');
-        $this->assertEquals($res->getBody(), $content);
+        $this->assertEquals($middlewareResponse->getBody(), $content);
     }
 
     /**
@@ -70,10 +77,6 @@ class OutputTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware([
             'mode' => [
                 'className' => 'Wrench\Mode\Output',
@@ -83,7 +86,10 @@ class OutputTest extends TestCase
                 ]
             ]
         ]);
-        $middlewareResponse = $middleware($request, $response, $next);
+
+        $requestHandler = new TestRequestHandler();
+
+        $middlewareResponse = $middleware->process($request, $requestHandler);
 
         $this->assertEquals(404, $middlewareResponse->getStatusCode());
 
@@ -97,8 +103,6 @@ class OutputTest extends TestCase
      * Test the Output filter mode with a wrong file path : it should throw an
      * exception
      * @return void
-     *
-     * @expectedException \LogicException
      */
     public function testOutputModeCustomParams()
     {
@@ -108,10 +112,6 @@ class OutputTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware([
             'mode' => [
                 'className' => 'Wrench\Mode\Output',
@@ -120,7 +120,12 @@ class OutputTest extends TestCase
                 ]
             ]
         ]);
-        $middleware($request, $response, $next);
+
+        $requestHandler = new TestRequestHandler();
+
+        $this->expectException(LogicException::class);
+
+        $middleware->process($request, $requestHandler);
     }
 
     /**
@@ -137,20 +142,19 @@ class OutputTest extends TestCase
             'REQUEST_URI' => '/',
             'REMOTE_ADDR' => '127.0.0.1'
         ]);
-        $response = new Response();
-        $next = function ($req, $res) {
-            return $res;
-        };
         $middleware = new MaintenanceMiddleware([
             'whitelist' => ['127.0.0.1'],
             'mode' => [
                 'className' => 'Wrench\Mode\Output'
             ]
         ]);
-        $res = $middleware($request, $response, $next);
 
-        $this->assertEquals(200, $res->getStatusCode());
+        $requestHandler = new TestRequestHandler();
 
-        $this->assertEquals($res->getBody(), '');
+        $middlewareResponse = $middleware->process($request, $requestHandler);
+
+        $this->assertEquals(200, $middlewareResponse->getStatusCode());
+
+        $this->assertEquals($middlewareResponse->getBody(), '');
     }
 }
