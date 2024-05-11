@@ -24,7 +24,11 @@ class MaintenanceModeCommand extends SimpleBakeCommand
     /**
      * {@inheritDoc}
      */
-    public $pathFragment = 'Maintenance/Mode/';
+    public function __construct()
+    {
+        parent::__construct();
+        $this->pathFragment = 'Maintenance/Mode/';
+    }
 
     /**
      * {@inheritDoc}

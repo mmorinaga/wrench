@@ -16,7 +16,7 @@ namespace Wrench\Mode;
 use Cake\Http\ServerRequest;
 use Cake\View\ViewVarsTrait;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\Stream;
+use Laminas\Diactoros\Stream;
 
 /**
  * `View` Maintenance Mode.
@@ -100,7 +100,7 @@ class View extends Mode
         }
 
         // Build view
-        $view = $viewBuilder->build([], $request);
+        $view = $viewBuilder->build($request);
 
         $stream = new Stream(fopen('php://memory', 'r+'));
         $stream->write($view->render());
